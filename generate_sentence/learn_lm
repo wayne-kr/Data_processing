@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+import pickle
+import re
+import sys
+###############################################################################
+def clean_text(sentence):
+    # 한글, 영어, 숫자, '%'를 제외한 모든 문자 패턴 정의
+    pattern = re.compile(r'[^\w\d%가-힣]')
+    hanja_pattern = re.compile(r'[\u4E00-\u9FFF]')
+
+    # 패턴에 맞는 문자를 제거하여 반환
+    cleaned_sentence2 = re.sub(hanja_pattern, ' ', sentence)
+    cleaned_sentence = re.sub(pattern, ' ', cleaned_sentence2)
+
+    return cleaned_sentence.strip()  # 문장 앞뒤 공백 제거 후 반환
+
+def process_text_file(input_file_path):
+    processed_sentences = []  # 처리된 문장들을 저장할 리스트
+    with open(input_file_path, 'r', encoding='utf-8') as input_file:
+        for line in input_file:
+            # 각 줄의 문장을 클린업 함수를 적용하여 처리된 문장을 생성
+            cleaned_sentence = clean_text(line)
+            # 공백 기준으로 문장을 분할하여 리스트로 변환
+            words = cleaned_sentence.split()
+            # 처리된 문장을 리스트에 추가
+            processed_sentences.append(words)
+
+    return processed_sentences
+
+def dict_text(processed_sentence):
+    words_dict = {'<s>': []}
+    for sentence in processed_sentence:
+        for i in range(len(sentence)-1):
+            if i == 0:
+                words_dict['<s>'].append(sentence[i])
+            else:
+                if sentence[i] not in words_dict:
+                    words_dict[sentence[i]] = [sentence[i+1]]
+                else:
+                    words_dict[sentence[i]].append(sentence[i+1])
+        if sentence[-1] in words_dict:
+            words_dict[sentence[-1]].append('</s>')
+        else:
+            words_dict[sentence[-1]] = ['</s>']
+
+    return words_dict
+
+def learn_lm(file_path):
+    # 입력 파일 경로 설정
+    processed_sentence = process_text_file(file_path)
+    bigrams = dict_text(processed_sentence)
+    return bigrams
+    
+###############################################################################
+if __name__ == "__main__":
+
+    if len(sys.argv) != 3:
+        print( "[Usage] %s in-file out-file(pickle)" %sys.argv[0], file=sys.stderr)
+        sys.exit()
+
+    filename = sys.argv[1]
+    print("processing %s ..." %filename, file=sys.stderr)
+
+    bigrams = learn_lm(filename)
+
+    with open(sys.argv[2],"wb") as fout:
+        print("saving %s" %sys.argv[2], file=sys.stderr)
+        pickle.dump(bigrams, fout)
+
+
+
+
