@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+import sys
+import pickle
+import random # choice
+
+def find_next_word(bigrams, key):
+    try:
+        next_word = random.choice(bigrams[key])
+        return next_word
+    except KeyError:
+        return False
+
+def find_keys_by_value(dictionary, value):
+    keys = []
+    for key, val_list in dictionary.items():
+        if value in val_list:
+            keys.append(key)
+    return keys
+
+def generate_sentence(bigrams, start_with = '<s>'):
+    list_random_sentence = []
+
+    if start_with != '<s>':
+        list_random_sentence.append(start_with)
+        list_random_sentence.append(random.choice(bigrams[start_with]))
+    else:
+        list_random_sentence.append(str(random.choice(bigrams['<s>'])))
+    while True:
+        if not find_next_word(bigrams, list_random_sentence[-1]):
+            last_word = random.choice(find_keys_by_value(bigrams, '</s>'))
+            if last_word == '</s>':
+                break
+            list_random_sentence.append(str(last_word))
+            break
+        else:
+            next_word = find_next_word(bigrams, list_random_sentence[-1])
+            if next_word == '</s>':
+                break
+            else:
+                list_random_sentence.append(str(next_word))
+    sentence = ' '.join(list_random_sentence)
+    print(sentence)
+
+###############################################################################
+if __name__ == "__main__":
+
+    if len(sys.argv) != 2:
+        print( "[Usage] %s in-file(pickle)" %sys.argv[0], file=sys.stderr)
+        sys.exit()
+
+    with open(sys.argv[1],"rb") as fp:
+        bigrams = pickle.load(fp)
+
+    for i in range(10):
+        print(i, end=' : ')
+        generate_sentence(bigrams, "<s>")
+        print()
